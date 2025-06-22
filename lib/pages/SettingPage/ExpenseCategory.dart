@@ -11,22 +11,15 @@ class Expensecategory extends StatefulWidget {
 
 class _ExpensecategoryState extends State<Expensecategory> {
   late Future<Box<ExpenseCategory>> _boxFuture;
-  Set<String> confirmDeleteIds = {};
+
+  final Set<String> confirmDeleteCategoryIds = {};
+  final Set<String> confirmDeleteSubIds = {};
+  final Map<String, bool> expandedStates = {};
 
   @override
   void initState() {
     super.initState();
     _boxFuture = Hive.openBox<ExpenseCategory>('expense_categories');
-  }
-
-  void toggleConfirmDelete(String key) {
-    setState(() {
-      if (confirmDeleteIds.contains(key)) {
-        confirmDeleteIds.remove(key);
-      } else {
-        confirmDeleteIds.add(key);
-      }
-    });
   }
 
   @override
@@ -43,14 +36,14 @@ class _ExpensecategoryState extends State<Expensecategory> {
 
         if (snapshot.hasError) {
           return Scaffold(
-            body: Center(child: Text('Error: ${snapshot.error}')),
+            body: Center(child: Text('Error: \${snapshot.error}')),
           );
         }
 
         final box = snapshot.data!;
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Expense Category'),
+            title: const Text('Expense Categories'),
             backgroundColor: Colors.grey[600],
             foregroundColor: Colors.white,
           ),
@@ -71,60 +64,78 @@ class _ExpensecategoryState extends State<Expensecategory> {
                 itemCount: box.length,
                 itemBuilder: (context, index) {
                   final category = box.getAt(index)!;
+                  final name = category.expenseCategoryName;
+                  final isExpanded = expandedStates[name] ?? false;
+                  final isConfirmingDelete =
+                      confirmDeleteCategoryIds.contains(name);
 
-                  return StatefulBuilder(
-                    builder: (context, setTileState) {
-                      bool isExpanded = false;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          columnTile(
-                            tileName: category.expenseCategoryName,
-                            subCategoryCount:
-                                category.subExpenseCategory.length,
-                            isConfirmingDelete: confirmDeleteIds
-                                .contains(category.expenseCategoryName),
-                            onTap: () {
-                              setTileState(() => isExpanded = !isExpanded);
-                            },
-                            onEdit: () {
-                              // Edit logic here
-                            },
-                            onDeleteTap: () {
-                              final name = category.expenseCategoryName;
-                              if (confirmDeleteIds.contains(name)) {
-                                box.deleteAt(index);
-                                confirmDeleteIds.remove(name);
-                              } else {
-                                toggleConfirmDelete(name);
-                              }
-                            },
-                          ),
-                          if (isExpanded)
-                            Padding(
-                              padding: const EdgeInsets.only(left: 32.0),
-                              child: Column(
-                                children: category.subExpenseCategory
-                                    .map((sub) => columnTile(
-                                          tileName: sub,
-                                          isConfirmingDelete: false,
-                                          onEdit: () {
-                                            // Edit subcategory
-                                          },
-                                          onDeleteTap: () {
-                                            category.subExpenseCategory
-                                                .remove(sub);
-                                            category.save();
-                                            setState(() {});
-                                          },
-                                          onTap: () {},
-                                        ))
-                                    .toList(),
-                              ),
+                  return Column(
+                    children: [
+                      columnTile(
+                        tileName: name,
+                        subCategoryCount: category.subExpenseCategory.length,
+                        isConfirmingDelete: isConfirmingDelete,
+                        onDeleteTap: () {
+                          setState(() {
+                            if (isConfirmingDelete) {
+                              confirmDeleteCategoryIds.remove(name);
+                            } else {
+                              confirmDeleteCategoryIds.add(name);
+                            }
+                          });
+                        },
+                        onConfirmDelete: () {
+                          box.deleteAt(index);
+                          setState(() {
+                            confirmDeleteCategoryIds.remove(name);
+                            expandedStates.remove(name);
+                          });
+                        },
+                        onTap: () {
+                          setState(() {
+                            expandedStates[name] = !isExpanded;
+                          });
+                        },
+                        onEdit: () {
+                          // Handle category edit
+                        },
+                      ),
+                      if (isExpanded)
+                        ...category.subExpenseCategory.map((sub) {
+                          final subKey =
+                              '$name::$sub'; // ✅ Correct string interpolation
+                          final isSubConfirmingDelete =
+                              confirmDeleteSubIds.contains(subKey);
+
+                          return Padding(
+                            padding: const EdgeInsets.only(
+                                left: 24.0), // ✅ Subcategory indentation
+                            child: columnTile(
+                              tileName: sub,
+                              isConfirmingDelete: isSubConfirmingDelete,
+                              onDeleteTap: () {
+                                setState(() {
+                                  if (isSubConfirmingDelete) {
+                                    confirmDeleteSubIds.remove(subKey);
+                                  } else {
+                                    confirmDeleteSubIds.add(subKey);
+                                  }
+                                });
+                              },
+                              onConfirmDelete: () {
+                                setState(() {
+                                  category.subExpenseCategory.remove(sub);
+                                  category.save();
+                                  confirmDeleteSubIds.remove(subKey);
+                                });
+                              },
+                              onEdit: () {
+                                // Handle subcategory edit
+                              },
                             ),
-                        ],
-                      );
-                    },
+                          );
+                        }).toList(),
+                    ],
                   );
                 },
               );
@@ -134,33 +145,38 @@ class _ExpensecategoryState extends State<Expensecategory> {
       },
     );
   }
+}
 
-  Widget columnTile({
-    required String tileName,
-    int? subCategoryCount,
-    required bool isConfirmingDelete,
-    required VoidCallback onDeleteTap,
-    required VoidCallback onEdit,
-    VoidCallback? onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          children: [
-            IconButton(
-              icon: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                child: isConfirmingDelete
-                    ? const Icon(Icons.delete_forever,
-                        key: ValueKey('confirm'), color: Colors.red)
-                    : const Icon(Icons.remove_circle_outline,
-                        key: ValueKey('ask'), color: Colors.red),
+Widget columnTile({
+  required String tileName,
+  int? subCategoryCount,
+  required bool isConfirmingDelete,
+  required VoidCallback onDeleteTap,
+  required VoidCallback onConfirmDelete,
+  VoidCallback? onEdit,
+  VoidCallback? onTap,
+}) {
+  return InkWell(
+    onTap: onTap,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      child: Row(
+        children: [
+          IconButton(
+            icon: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: Icon(
+                isConfirmingDelete ? Icons.cancel : Icons.remove_circle_outline,
+                key: ValueKey(isConfirmingDelete),
+                color: Colors.red,
               ),
-              onPressed: onDeleteTap,
             ),
-            Expanded(
+            onPressed: onDeleteTap,
+          ),
+          Expanded(
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 300),
+              padding: EdgeInsets.only(left: isConfirmingDelete ? 4 : 12),
               child: Text(
                 subCategoryCount != null
                     ? '$tileName ($subCategoryCount)'
@@ -172,16 +188,25 @@ class _ExpensecategoryState extends State<Expensecategory> {
                 ),
               ),
             ),
-            if (!isConfirmingDelete)
-              IconButton(
-                icon: const Icon(Icons.edit, color: Colors.white),
-                onPressed: onEdit,
-              ),
-          ],
-        ),
+          ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: isConfirmingDelete
+                ? IconButton(
+                    key: const ValueKey('confirmDelete'),
+                    icon: const Icon(Icons.delete, color: Colors.white),
+                    onPressed: onConfirmDelete,
+                  )
+                : IconButton(
+                    key: const ValueKey('edit'),
+                    icon: const Icon(Icons.edit, color: Colors.white),
+                    onPressed: onEdit,
+                  ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
 }
 
 Future<void> preloadDefaultExpenseCategories() async {
