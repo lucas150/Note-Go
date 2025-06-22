@@ -42,6 +42,13 @@ class HomeScreen {
               },
               child: const Text('Hive Debug'),
             ),
+            ElevatedButton(
+              onPressed: () {
+                // Navigate to Settings Screen
+                Navigator.pushNamed(context, '/settings');
+              },
+              child: const Text('Settings'),
+            ),
           ],
         ),
       ),

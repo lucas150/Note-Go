@@ -2,17 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:notegoexpense/model/category_model.dart';
 import 'package:notegoexpense/model/transaction_model.dart';
+import 'package:notegoexpense/pages/SettingPage/ExpenseCategory.dart';
 import 'package:notegoexpense/pages/account_management.dart';
 import 'package:notegoexpense/pages/add_transactions.dart';
 import 'package:notegoexpense/pages/hivedata.dart';
 import 'package:notegoexpense/pages/ledger.dart';
+import 'package:notegoexpense/pages/SettingPage/settings.dart';
 import 'package:notegoexpense/pages/welcome.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Hive.initFlutter();
+  Hive.registerAdapter(ExpenseCategoryAdapter());
+  await Hive.openBox<ExpenseCategory>('expense_categories');
+  await preloadDefaultExpenseCategories();
+
   Hive.registerAdapter(TransactionTypeAdapter());
   Hive.registerAdapter(TransactionModelAdapter());
   Hive.registerAdapter(AccountRoleAdapter());
@@ -45,6 +52,8 @@ class MyApp extends StatelessWidget {
         '/ledger': (context) => const LedgerPage(),
         '/accountManagement': (context) => const AccountManagementPage(),
         '/hiveDebug': (context) => const HiveDebugPage(),
+        '/settings': (context) => const Settings(),
+        '/expenseCategory': (context) => const Expensecategory(),
       },
     );
   }
