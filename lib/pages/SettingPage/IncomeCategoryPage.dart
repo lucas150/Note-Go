@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:notegoexpense/pages/SettingPage/AddExpenseCategory.dart';
+import 'package:notegoexpense/pages/SettingPage/AddIncomeCategory.dart';
 import '../../model/category_model.dart';
 
-class Expensecategory extends StatefulWidget {
-  const Expensecategory({super.key});
+class IncomeCategoryPage extends StatefulWidget {
+  const IncomeCategoryPage({super.key});
 
   @override
-  State<Expensecategory> createState() => _ExpensecategoryState();
+  State<IncomeCategoryPage> createState() => _IncomeCategoryPageState();
 }
 
-class _ExpensecategoryState extends State<Expensecategory> {
-  late Future<Box<ExpenseCategory>> _boxFuture;
+class _IncomeCategoryPageState extends State<IncomeCategoryPage> {
+  late Future<Box<IncomeCategory>> _boxFuture;
 
   final Set<String> confirmDeleteCategoryIds = {};
   final Set<String> confirmDeleteSubIds = {};
@@ -20,7 +20,7 @@ class _ExpensecategoryState extends State<Expensecategory> {
   @override
   void initState() {
     super.initState();
-    _boxFuture = Hive.openBox<ExpenseCategory>('expense_categories');
+    _boxFuture = Hive.openBox<IncomeCategory>('income_categories');
   }
 
   @override
@@ -37,14 +37,14 @@ class _ExpensecategoryState extends State<Expensecategory> {
 
         if (snapshot.hasError) {
           return Scaffold(
-            body: Center(child: Text('Error: \${snapshot.error}')),
+            body: Center(child: Text('Error: ${snapshot.error}')),
           );
         }
 
         final box = snapshot.data!;
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Expense Categories'),
+            title: const Text('Income Categories'),
             backgroundColor: Colors.grey[700],
             foregroundColor: Colors.white,
             actions: [
@@ -54,8 +54,7 @@ class _ExpensecategoryState extends State<Expensecategory> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => AddExpenseCategory(),
-                    ),
+                        builder: (context) => const AddIncomeCategory()),
                   );
                 },
               ),
@@ -64,7 +63,7 @@ class _ExpensecategoryState extends State<Expensecategory> {
           backgroundColor: Colors.grey[600],
           body: ValueListenableBuilder(
             valueListenable: box.listenable(),
-            builder: (context, Box<ExpenseCategory> box, _) {
+            builder: (context, Box<IncomeCategory> box, _) {
               if (box.values.isEmpty) {
                 return const Center(
                   child: Text(
@@ -78,7 +77,7 @@ class _ExpensecategoryState extends State<Expensecategory> {
                 itemCount: box.length,
                 itemBuilder: (context, index) {
                   final category = box.getAt(index)!;
-                  final name = category.expenseCategoryName;
+                  final name = category.incomeCategoryName;
                   final isExpanded = expandedStates[name] ?? false;
                   final isConfirmingDelete =
                       confirmDeleteCategoryIds.contains(name);
@@ -86,7 +85,7 @@ class _ExpensecategoryState extends State<Expensecategory> {
                     children: [
                       columnTile(
                         tileName: name,
-                        subCategoryCount: category.subExpenseCategory.length,
+                        subCategoryCount: category.subIncomeCategory.length,
                         isConfirmingDelete: isConfirmingDelete,
                         onDeleteTap: () {
                           setState(() {
@@ -113,14 +112,14 @@ class _ExpensecategoryState extends State<Expensecategory> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => AddExpenseCategory(
+                              builder: (context) => AddIncomeCategory(
                                   category: category, index: index),
                             ),
                           );
                         },
                       ),
                       if (isExpanded)
-                        ...category.subExpenseCategory.map((sub) {
+                        ...category.subIncomeCategory.map((sub) {
                           final subKey = '$name::$sub';
                           final isSubConfirmingDelete =
                               confirmDeleteSubIds.contains(subKey);
@@ -141,16 +140,17 @@ class _ExpensecategoryState extends State<Expensecategory> {
                               },
                               onConfirmDelete: () {
                                 setState(() {
-                                  category.subExpenseCategory.remove(sub);
+                                  category.subIncomeCategory.remove(sub);
                                   category.save();
                                   confirmDeleteSubIds.remove(subKey);
                                 });
                               },
                               onEdit: () {
+                                // Handle subcategory edit
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => AddExpenseCategory(
+                                    builder: (context) => AddIncomeCategory(
                                         category: category, index: index),
                                   ),
                                 );
@@ -248,52 +248,33 @@ Widget columnTile({
     ),
   );
 }
+// import '../../model/category_model.dart' as model;
+// import 'package:hive/hive.dart';
 
-Future<void> preloadDefaultExpenseCategories() async {
-  final box = await Hive.openBox<ExpenseCategory>('expense_categories');
+Future<void> preloadDefaultIncomeCategories() async {
+  final box = await Hive.openBox<IncomeCategory>('income_categories');
 
-  // ✅ Only insert if the box is empty
   if (box.isEmpty) {
-    final List<ExpenseCategory> defaultCategories = [
-      ExpenseCategory(
-        expenseCategoryName: 'Food',
-        subExpenseCategory: ['Lunch', 'Dinner', 'Snacks', 'Eating Out'],
+    final List<IncomeCategory> defaultCategories = [
+      IncomeCategory(
+        incomeCategoryName: 'Salary',
+        subIncomeCategory: ['Base Pay', 'Bonus', 'Incentives'],
       ),
-      ExpenseCategory(
-        expenseCategoryName: 'Social Life',
-        subExpenseCategory: ['Parties', 'Clubbing', 'Bars', 'Events'],
+      IncomeCategory(
+        incomeCategoryName: 'Freelance',
+        subIncomeCategory: ['Projects', 'Consulting'],
       ),
-      ExpenseCategory(
-        expenseCategoryName: 'Gifts',
-        subExpenseCategory: ['Birthday', 'Wedding', 'Festival'],
+      IncomeCategory(
+        incomeCategoryName: 'Investments',
+        subIncomeCategory: ['Dividends', 'Interest', 'Other Income'],
       ),
-      ExpenseCategory(
-        expenseCategoryName: 'Household',
-        subExpenseCategory: ['Groceries', 'Cleaning', 'Appliances'],
+      IncomeCategory(
+        incomeCategoryName: 'Gifts',
+        subIncomeCategory: ['Cash Gifts', 'Other Gifts'],
       ),
-      ExpenseCategory(
-        expenseCategoryName: 'Movies',
-        subExpenseCategory: ['Cinema', 'Streaming', 'Theatre'],
-      ),
-      ExpenseCategory(
-        expenseCategoryName: 'Transport',
-        subExpenseCategory: ['Bus', 'Train', 'Cab', 'Fuel'],
-      ),
-      ExpenseCategory(
-        expenseCategoryName: 'Shopping',
-        subExpenseCategory: ['Clothing', 'Electronics', 'Accessories'],
-      ),
-      ExpenseCategory(
-        expenseCategoryName: 'SIP',
-        subExpenseCategory: ['Mutual Funds', 'Recurring Investment'],
-      ),
-      ExpenseCategory(
-        expenseCategoryName: 'Stocks',
-        subExpenseCategory: ['Equity', 'ETF', 'Trading'],
-      ),
-      ExpenseCategory(
-        expenseCategoryName: 'Other',
-        subExpenseCategory: ['Miscellaneous'],
+      IncomeCategory(
+        incomeCategoryName: 'Other',
+        subIncomeCategory: ['Miscellaneous'],
       ),
     ];
 

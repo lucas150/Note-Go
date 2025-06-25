@@ -16,10 +16,7 @@ class _WelcomePageState extends State<WelcomePage> {
     // Simulate a delay for splash screen
     Future.delayed(const Duration(seconds: 2), () {
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomeScreen.build(context)),
-      );
+      Navigator.pushReplacementNamed(context, '/home');
     });
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:notegoexpense/widgets/BottomBar.dart';
 
 class Settings extends StatefulWidget {
   const Settings({super.key});
@@ -7,8 +8,6 @@ class Settings extends StatefulWidget {
   State<Settings> createState() => _SettingsState();
 }
 
-class ExpenseCategories {}
-
 class _SettingsState extends State<Settings> {
   @override
   Widget build(BuildContext context) {
@@ -16,18 +15,24 @@ class _SettingsState extends State<Settings> {
       backgroundColor: Colors.grey[600],
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: Colors.grey[600],
+        backgroundColor: Colors.grey[700],
         foregroundColor: Colors.white,
       ),
       body: ListView(
         children: <Widget>[
           header(title: const Text('Categories')),
           columnTile(
-              tileName: 'Expemse Categories',
-              onTap: () {
-                Navigator.pushNamed(context, '/expenseCategory');
-              }),
-          columnTile(tileName: 'Income Categories', onTap: () {}),
+            tileName: 'Expense Categories',
+            onTap: () {
+              Navigator.pushNamed(context, '/expenseCategory');
+            },
+          ),
+          columnTile(
+            tileName: 'Income Categories',
+            onTap: () {
+              Navigator.pushNamed(context, '/incomeCategory');
+            },
+          ),
           header(title: const Text('Configurations')),
           columnTile(
             tileName: 'Currency',
@@ -36,7 +41,20 @@ class _SettingsState extends State<Settings> {
               // Currency selection logic
             },
           ),
+          header(title: const Text('Debug')),
+          columnTile(
+            tileName: 'Hive Logs',
+            onTap: () {
+              Navigator.pushNamed(context, '/hiveDebug');
+            },
+          ),
         ],
+      ),
+      bottomNavigationBar: BottomBar(
+        currentIndex: 3, // Settings tab is selected
+        onTap: (index) {
+          _handleBottomNavigation(context, index);
+        },
       ),
     );
   }
@@ -88,5 +106,21 @@ class _SettingsState extends State<Settings> {
         ),
       ),
     );
+  }
+
+  void _handleBottomNavigation(BuildContext context, int index) {
+    String route;
+    if (index == 0)
+      route = '/home';
+    else if (index == 1)
+      route = '/ledger';
+    else if (index == 2)
+      route = '/accountManagement';
+    else
+      route = '/settings';
+
+    if (ModalRoute.of(context)?.settings.name != route) {
+      Navigator.pushNamed(context, route);
+    }
   }
 }

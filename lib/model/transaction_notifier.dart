@@ -18,14 +18,22 @@ class TransactionsNotifier extends AsyncNotifier<List<TransactionModel>> {
 
   /// Adds a new transaction and updates state
   Future<void> addTransaction(TransactionModel transaction) async {
+    // Ensure box is initialized
+    // if (!_box.isOpen) {
+    //   _box = await Hive.openBox<TransactionModel>('transactions');
+    // }
+
     await _box.put(transaction.id, transaction);
     state = AsyncData([...state.value ?? [], transaction]);
   }
 
-  /// Edits an existing transaction (if not Opening Balance)
+  /// Edits a transaction
   Future<void> editTransaction(TransactionModel updatedTx) async {
-    final existing = _box.get(updatedTx.id);
+    // if (!_box.isOpen) {
+    //   _box = await Hive.openBox<TransactionModel>('transactions');
+    // }
 
+    final existing = _box.get(updatedTx.id);
     if (existing != null &&
         existing.title == 'Opening Balance' &&
         existing.category == 'Opening Balance' &&
@@ -34,18 +42,20 @@ class TransactionsNotifier extends AsyncNotifier<List<TransactionModel>> {
     }
 
     await _box.put(updatedTx.id, updatedTx);
-
-    final updatedList = [
+    final updatedList = <TransactionModel>[
       for (final tx in state.value ?? [])
         if (tx.id == updatedTx.id) updatedTx else tx,
-    ].cast<TransactionModel>();
+    ];
     state = AsyncData(updatedList);
   }
 
-  /// Deletes a transaction (if not Opening Balance)
+  /// Deletes a transaction
   Future<void> deleteTransaction(String id) async {
-    final existing = _box.get(id);
+    // if (!_box.isOpen) {
+    //   _box = await Hive.openBox<TransactionModel>('transactions');
+    // }
 
+    final existing = _box.get(id);
     if (existing != null &&
         existing.title == 'Opening Balance' &&
         existing.category == 'Opening Balance' &&
@@ -54,7 +64,6 @@ class TransactionsNotifier extends AsyncNotifier<List<TransactionModel>> {
     }
 
     await _box.delete(id);
-
     final updatedList = (state.value ?? []).where((tx) => tx.id != id).toList();
     state = AsyncData(updatedList);
   }

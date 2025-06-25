@@ -1,10 +1,279 @@
+// import 'package:flutter/material.dart';
+// import 'package:flutter_riverpod/flutter_riverpod.dart';
+// import 'package:intl/intl.dart';
+// import '../model/transaction_model.dart';
+// import '../model/transaction_notifier.dart';
+// import '../model/account_notifier.dart';
+// import 'package:uuid/uuid.dart';
+
+// class AddTransactionPage extends ConsumerStatefulWidget {
+//   const AddTransactionPage({Key? key}) : super(key: key);
+
+//   @override
+//   ConsumerState<AddTransactionPage> createState() => _AddTransactionPageState();
+// }
+
+// class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
+//   final _formKey = GlobalKey<FormState>();
+
+//   String _title = '';
+//   String _account = '';
+//   double _amount = 0.0;
+//   String _category = '';
+//   String _note = '';
+//   DateTime _selectedDate = DateTime.now();
+//   TransactionType _transactionType = TransactionType.expense;
+
+//   final TextEditingController _customCategoryController =
+//       TextEditingController();
+
+//   final List<String> _expenseCategories = [
+//     'Food',
+//     'Transport',
+//     'Rent',
+//     'Utilities',
+//     'Shopping',
+//     'Other'
+//   ];
+//   final List<String> _incomeCategories = [
+//     'Salary',
+//     'Freelance',
+//     'Investment',
+//     'Gift',
+//     'Other'
+//   ];
+//   final List<String> _savingCategories = [
+//     'Emergency Fund',
+//     'Vacation',
+//     'Investments',
+//     'Other'
+//   ];
+
+//   bool get _isIncome => _transactionType == TransactionType.income;
+//   bool get _isExpense => _transactionType == TransactionType.expense;
+//   bool get _isSavings => _transactionType == TransactionType.savings;
+
+//   void _pickDate() async {
+//     final picked = await showDatePicker(
+//       context: context,
+//       initialDate: _selectedDate,
+//       firstDate: DateTime(2020),
+//       lastDate: DateTime(2100),
+//     );
+//     if (picked != null) setState(() => _selectedDate = picked);
+//   }
+
+//   void _saveTransaction() async {
+//     if (_formKey.currentState!.validate()) {
+//       _formKey.currentState!.save();
+
+//       // Handle custom category
+//       if (_category == 'Other') {
+//         final newCategory = _customCategoryController.text.trim();
+//         _category = newCategory;
+
+//         if (_isIncome && !_incomeCategories.contains(newCategory)) {
+//           setState(() => _incomeCategories.insert(
+//               _incomeCategories.length - 1, newCategory));
+//         } else if (_isExpense && !_expenseCategories.contains(newCategory)) {
+//           setState(() => _expenseCategories.insert(
+//               _expenseCategories.length - 1, newCategory));
+//         } else if (_isSavings && !_savingCategories.contains(newCategory)) {
+//           setState(() => _savingCategories.insert(
+//               _savingCategories.length - 1, newCategory));
+//         }
+//       }
+
+//       // Create transaction
+//       final newTransaction = TransactionModel(
+//         id: const Uuid().v4(),
+//         type: _transactionType,
+//         title: _title,
+//         amount: _amount,
+//         date: _selectedDate,
+//         category: _category,
+//         account: _account,
+//         note: _note,
+//       );
+
+//       await ref
+//           .read(transactionsProvider.notifier)
+//           .addTransaction(newTransaction);
+
+//       // 🌟 Update account balance
+//       final accountsNotifier = ref.read(accountsProvider.notifier);
+//       final accountsAsync = ref.read(accountsProvider);
+
+//       final accounts = accountsAsync.maybeWhen(
+//         data: (data) => data,
+//         orElse: () => [],
+//       );
+
+//       final selectedAccount = accounts.firstWhere(
+//         (acc) => acc.name == _account,
+//         orElse: () => throw Exception('Account not found'),
+//       );
+
+//       double updatedBalance = selectedAccount.balance;
+//       if (_isIncome) {
+//         updatedBalance += _amount;
+//       } else if (_isExpense || _isSavings) {
+//         updatedBalance -= _amount;
+//       }
+
+//       final updatedAccount = selectedAccount.copyWith(balance: updatedBalance);
+//       await accountsNotifier.updateAccount(updatedAccount);
+
+//       if (mounted) {
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           const SnackBar(content: Text('Transaction added!')),
+//         );
+//         Navigator.pop(context);
+//       }
+//     }
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     final accountList = ref.watch(accountsProvider).value ?? [];
+//     final categories = _isIncome
+//         ? _incomeCategories
+//         : _isExpense
+//             ? _expenseCategories
+//             : _savingCategories;
+
+//     if (_category.isEmpty) {
+//       _category = categories.first;
+//     }
+
+//     return Scaffold(
+//       appBar: AppBar(title: const Text('Add Transaction')),
+//       body: Padding(
+//         padding: const EdgeInsets.all(16),
+//         child: Form(
+//           key: _formKey,
+//           child: ListView(
+//             children: [
+//               Row(
+//                 mainAxisAlignment: MainAxisAlignment.center,
+//                 children: [
+//                   ChoiceChip(
+//                     label: const Text('Expense'),
+//                     selected: _isExpense,
+//                     onSelected: (_) => setState(() {
+//                       _transactionType = TransactionType.expense;
+//                       _category = _expenseCategories.first;
+//                     }),
+//                   ),
+//                   const SizedBox(width: 10),
+//                   ChoiceChip(
+//                     label: const Text('Income'),
+//                     selected: _isIncome,
+//                     onSelected: (_) => setState(() {
+//                       _transactionType = TransactionType.income;
+//                       _category = _incomeCategories.first;
+//                     }),
+//                   ),
+//                   const SizedBox(width: 10),
+//                   ChoiceChip(
+//                     label: const Text('Savings'),
+//                     selected: _isSavings,
+//                     onSelected: (_) => setState(() {
+//                       _transactionType = TransactionType.savings;
+//                       _category = _savingCategories.first;
+//                     }),
+//                   ),
+//                 ],
+//               ),
+//               ListTile(
+//                 contentPadding: EdgeInsets.zero,
+//                 title: const Text('Date'),
+//                 subtitle: Text(DateFormat.yMMMd().format(_selectedDate)),
+//                 trailing: const Icon(Icons.calendar_today),
+//                 onTap: _pickDate,
+//               ),
+//               TextFormField(
+//                 decoration: const InputDecoration(labelText: 'Title'),
+//                 onSaved: (val) => _title = val ?? '',
+//                 validator: (val) =>
+//                     val == null || val.isEmpty ? 'Enter title' : null,
+//               ),
+//               TextFormField(
+//                 decoration: const InputDecoration(labelText: 'Amount (₹)'),
+//                 keyboardType: TextInputType.number,
+//                 validator: (val) {
+//                   if (val == null || val.trim().isEmpty) return 'Enter amount';
+//                   final value = double.tryParse(val.trim());
+//                   if (value == null || value <= 0) return 'Enter valid amount';
+//                   return null;
+//                 },
+//                 onSaved: (val) => _amount = double.tryParse(val ?? '') ?? 0.0,
+//               ),
+//               DropdownButtonFormField<String>(
+//                 value: _category.isNotEmpty && categories.contains(_category)
+//                     ? _category
+//                     : 'Other',
+//                 decoration: const InputDecoration(labelText: 'Category'),
+//                 items: categories
+//                     .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+//                     .toList(),
+//                 onChanged: (val) => setState(() {
+//                   _category = val!;
+//                   if (_category == 'Other') _customCategoryController.clear();
+//                 }),
+//               ),
+//               if (_category == 'Other')
+//                 TextFormField(
+//                   controller: _customCategoryController,
+//                   decoration:
+//                       const InputDecoration(labelText: 'Enter Custom Category'),
+//                   validator: (val) => val == null || val.isEmpty
+//                       ? 'Enter custom category'
+//                       : null,
+//                 ),
+//               DropdownButtonFormField<String>(
+//                 decoration: const InputDecoration(labelText: 'Account'),
+//                 value: accountList.any((acc) => acc.name == _account)
+//                     ? _account
+//                     : null,
+//                 items: accountList.map((acc) {
+//                   return DropdownMenuItem(
+//                     value: acc.name,
+//                     child: Text('${acc.name} • ₹${acc.balance}'),
+//                   );
+//                 }).toList(),
+//                 onChanged: (val) => setState(() => _account = val ?? ''),
+//                 validator: (val) => val == null || val.isEmpty
+//                     ? 'Please select an account'
+//                     : null,
+//               ),
+//               TextFormField(
+//                 decoration: const InputDecoration(labelText: 'Note'),
+//                 onSaved: (val) => _note = val ?? '',
+//               ),
+//               const SizedBox(height: 20),
+//               ElevatedButton.icon(
+//                 icon: const Icon(Icons.save),
+//                 label: const Text('Save Transaction'),
+//                 onPressed: _saveTransaction,
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 import '../model/transaction_model.dart';
+import '../model/category_model.dart';
 import '../model/transaction_notifier.dart';
 import '../model/account_notifier.dart';
-import 'package:uuid/uuid.dart';
 
 class AddTransactionPage extends ConsumerStatefulWidget {
   const AddTransactionPage({Key? key}) : super(key: key);
@@ -19,46 +288,37 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
   String _title = '';
   String _account = '';
   double _amount = 0.0;
-  String _category = '';
+  String _mainCategory = '';
+  String _subCategory = '';
   String _note = '';
   DateTime _selectedDate = DateTime.now();
   TransactionType _transactionType = TransactionType.expense;
 
-  final TextEditingController _customCategoryController =
-      TextEditingController();
+  late final Future<Map<String, dynamic>> _categoryFuture;
 
-  final List<String> _expenseCategories = [
-    'Food',
-    'Transport',
-    'Rent',
-    'Utilities',
-    'Shopping',
-    'Other'
-  ];
-  final List<String> _incomeCategories = [
-    'Salary',
-    'Freelance',
-    'Investment',
-    'Gift',
-    'Other'
-  ];
-  final List<String> _savingCategories = [
-    'Emergency Fund',
-    'Vacation',
-    'Investments',
-    'Other'
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _categoryFuture = _loadCategoryBoxes();
+  }
 
-  bool get _isIncome => _transactionType == TransactionType.income;
-  bool get _isExpense => _transactionType == TransactionType.expense;
-  bool get _isSavings => _transactionType == TransactionType.savings;
+  Future<Map<String, dynamic>> _loadCategoryBoxes() async {
+    final expenseBox =
+        await Hive.openBox<ExpenseCategory>('expense_categories');
+    final incomeBox = await Hive.openBox<IncomeCategory>('income_categories');
+
+    return {
+      'expense': expenseBox.values.toList(),
+      'income': incomeBox.values.toList(),
+    };
+  }
 
   void _pickDate() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
+      lastDate: DateTime.now(),
     );
     if (picked != null) setState(() => _selectedDate = picked);
   }
@@ -67,31 +327,19 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      // Handle custom category
-      if (_category == 'Other') {
-        final newCategory = _customCategoryController.text.trim();
-        _category = newCategory;
+      final categoryString = _mainCategory.isNotEmpty
+          ? (_subCategory.isNotEmpty
+              ? '$_mainCategory/$_subCategory'
+              : _mainCategory)
+          : '';
 
-        if (_isIncome && !_incomeCategories.contains(newCategory)) {
-          setState(() => _incomeCategories.insert(
-              _incomeCategories.length - 1, newCategory));
-        } else if (_isExpense && !_expenseCategories.contains(newCategory)) {
-          setState(() => _expenseCategories.insert(
-              _expenseCategories.length - 1, newCategory));
-        } else if (_isSavings && !_savingCategories.contains(newCategory)) {
-          setState(() => _savingCategories.insert(
-              _savingCategories.length - 1, newCategory));
-        }
-      }
-
-      // Create transaction
       final newTransaction = TransactionModel(
         id: const Uuid().v4(),
         type: _transactionType,
         title: _title,
         amount: _amount,
         date: _selectedDate,
-        category: _category,
+        category: categoryString,
         account: _account,
         note: _note,
       );
@@ -100,8 +348,6 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
           .read(transactionsProvider.notifier)
           .addTransaction(newTransaction);
 
-      // 🌟 Update account balance
-      final accountsNotifier = ref.read(accountsProvider.notifier);
       final accountsAsync = ref.read(accountsProvider);
 
       final accounts = accountsAsync.maybeWhen(
@@ -109,20 +355,11 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
         orElse: () => [],
       );
 
-      final selectedAccount = accounts.firstWhere(
+      accounts.firstWhere(
         (acc) => acc.name == _account,
         orElse: () => throw Exception('Account not found'),
       );
 
-      double updatedBalance = selectedAccount.balance;
-      if (_isIncome) {
-        updatedBalance += _amount;
-      } else if (_isExpense || _isSavings) {
-        updatedBalance -= _amount;
-      }
-
-      final updatedAccount = selectedAccount.copyWith(balance: updatedBalance);
-      await accountsNotifier.updateAccount(updatedAccount);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -136,131 +373,179 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
   @override
   Widget build(BuildContext context) {
     final accountList = ref.watch(accountsProvider).value ?? [];
-    final categories = _isIncome
-        ? _incomeCategories
-        : _isExpense
-            ? _expenseCategories
-            : _savingCategories;
 
-    if (_category.isEmpty) {
-      _category = categories.first;
-    }
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _categoryFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+              body: Center(child: CircularProgressIndicator()));
+        }
+        if (snapshot.hasError) {
+          return Scaffold(
+              body: Center(child: Text('Error: ${snapshot.error}')));
+        }
+        if (!snapshot.hasData) {
+          return const Scaffold(
+              body: Center(child: Text('No categories found')));
+        }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Add Transaction')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+        final expenseCategories =
+            snapshot.data!['expense'] as List<ExpenseCategory>;
+        final incomeCategories =
+            snapshot.data!['income'] as List<IncomeCategory>;
+
+        final mainCategories = _transactionType == TransactionType.expense
+            ? expenseCategories.map((e) => e.expenseCategoryName).toList()
+            : incomeCategories.map((e) => e.incomeCategoryName).toList();
+
+        final selectedMainCategory = _mainCategory.isNotEmpty
+            ? _mainCategory
+            : (mainCategories.isNotEmpty ? mainCategories.first : '');
+
+        final subCategories = _transactionType == TransactionType.expense
+            ? expenseCategories
+                .firstWhere(
+                  (e) => e.expenseCategoryName == selectedMainCategory,
+                  orElse: () => ExpenseCategory(
+                      expenseCategoryName: '', subExpenseCategory: []),
+                )
+                .subExpenseCategory
+            : incomeCategories
+                .firstWhere(
+                  (e) => e.incomeCategoryName == selectedMainCategory,
+                  orElse: () => IncomeCategory(
+                      incomeCategoryName: '', subIncomeCategory: []),
+                )
+                .subIncomeCategory;
+
+        return Scaffold(
+          appBar: AppBar(title: const Text('Add Transaction')),
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: ListView(
                 children: [
-                  ChoiceChip(
-                    label: const Text('Expense'),
-                    selected: _isExpense,
-                    onSelected: (_) => setState(() {
-                      _transactionType = TransactionType.expense;
-                      _category = _expenseCategories.first;
-                    }),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Expense'),
+                        selected: _transactionType == TransactionType.expense,
+                        onSelected: (_) => setState(() {
+                          _transactionType = TransactionType.expense;
+                          _mainCategory = '';
+                          _subCategory = '';
+                        }),
+                      ),
+                      const SizedBox(width: 10),
+                      ChoiceChip(
+                        label: const Text('Income'),
+                        selected: _transactionType == TransactionType.income,
+                        onSelected: (_) => setState(() {
+                          _transactionType = TransactionType.income;
+                          _mainCategory = '';
+                          _subCategory = '';
+                        }),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  ChoiceChip(
-                    label: const Text('Income'),
-                    selected: _isIncome,
-                    onSelected: (_) => setState(() {
-                      _transactionType = TransactionType.income;
-                      _category = _incomeCategories.first;
-                    }),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Date'),
+                    subtitle: Text(DateFormat.yMMMd().format(_selectedDate)),
+                    trailing: const Icon(Icons.calendar_today),
+                    onTap: _pickDate,
                   ),
-                  const SizedBox(width: 10),
-                  ChoiceChip(
-                    label: const Text('Savings'),
-                    selected: _isSavings,
-                    onSelected: (_) => setState(() {
-                      _transactionType = TransactionType.savings;
-                      _category = _savingCategories.first;
-                    }),
+                  TextFormField(
+                    decoration: const InputDecoration(labelText: 'Title'),
+                    onSaved: (val) => _title = val ?? '',
+                    validator: (val) =>
+                        val == null || val.isEmpty ? 'Enter title' : null,
+                  ),
+                  TextFormField(
+                    decoration: const InputDecoration(labelText: 'Amount (₹)'),
+                    keyboardType: TextInputType.number,
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty)
+                        return 'Enter amount';
+                      final value = double.tryParse(val.trim());
+                      if (value == null || value <= 0)
+                        return 'Enter valid amount';
+                      return null;
+                    },
+                    onSaved: (val) =>
+                        _amount = double.tryParse(val ?? '') ?? 0.0,
+                  ),
+                  const SizedBox(height: 16),
+                  if (mainCategories.isNotEmpty) ...[
+                    const Text('Select Category'),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: mainCategories.map((cat) {
+                        final isSelected = selectedMainCategory == cat;
+                        return ChoiceChip(
+                          label: Text(cat),
+                          selected: isSelected,
+                          onSelected: (_) => setState(() {
+                            _mainCategory = cat;
+                            _subCategory = '';
+                          }),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  if (subCategories.isNotEmpty) ...[
+                    const Text('Select Sub-Category'),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: subCategories.map((sub) {
+                        return ChoiceChip(
+                          label: Text(sub),
+                          selected: _subCategory == sub,
+                          onSelected: (_) => setState(() {
+                            _subCategory = sub;
+                          }),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  const Text('Select Account'),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: accountList.map((acc) {
+                      return ChoiceChip(
+                        label: Text(
+                            '${acc.name} • ₹${acc.balance.toStringAsFixed(2)}'),
+                        selected: _account == acc.name,
+                        onSelected: (_) => setState(() => _account = acc.name),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    decoration: const InputDecoration(labelText: 'Note'),
+                    onSaved: (val) => _note = val ?? '',
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.save),
+                    label: const Text('Save Transaction'),
+                    onPressed: _saveTransaction,
                   ),
                 ],
               ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Date'),
-                subtitle: Text(DateFormat.yMMMd().format(_selectedDate)),
-                trailing: const Icon(Icons.calendar_today),
-                onTap: _pickDate,
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Title'),
-                onSaved: (val) => _title = val ?? '',
-                validator: (val) =>
-                    val == null || val.isEmpty ? 'Enter title' : null,
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Amount (₹)'),
-                keyboardType: TextInputType.number,
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Enter amount';
-                  final value = double.tryParse(val.trim());
-                  if (value == null || value <= 0) return 'Enter valid amount';
-                  return null;
-                },
-                onSaved: (val) => _amount = double.tryParse(val ?? '') ?? 0.0,
-              ),
-              DropdownButtonFormField<String>(
-                value: _category.isNotEmpty && categories.contains(_category)
-                    ? _category
-                    : 'Other',
-                decoration: const InputDecoration(labelText: 'Category'),
-                items: categories
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
-                onChanged: (val) => setState(() {
-                  _category = val!;
-                  if (_category == 'Other') _customCategoryController.clear();
-                }),
-              ),
-              if (_category == 'Other')
-                TextFormField(
-                  controller: _customCategoryController,
-                  decoration:
-                      const InputDecoration(labelText: 'Enter Custom Category'),
-                  validator: (val) => val == null || val.isEmpty
-                      ? 'Enter custom category'
-                      : null,
-                ),
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Account'),
-                value: accountList.any((acc) => acc.name == _account)
-                    ? _account
-                    : null,
-                items: accountList.map((acc) {
-                  return DropdownMenuItem(
-                    value: acc.name,
-                    child: Text('${acc.name} • ₹${acc.balance}'),
-                  );
-                }).toList(),
-                onChanged: (val) => setState(() => _account = val ?? ''),
-                validator: (val) => val == null || val.isEmpty
-                    ? 'Please select an account'
-                    : null,
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Note'),
-                onSaved: (val) => _note = val ?? '',
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.save),
-                label: const Text('Save Transaction'),
-                onPressed: _saveTransaction,
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

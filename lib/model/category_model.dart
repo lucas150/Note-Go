@@ -14,4 +14,16 @@ class ExpenseCategory extends HiveObject {
       {required this.expenseCategoryName, this.subExpenseCategory = const []});
 }
 
+@HiveType(typeId: 5)
+class IncomeCategory extends HiveObject {
+  @HiveField(0)
+  String incomeCategoryName;
+
+  @HiveField(1)
+  List<String> subIncomeCategory;
+
+  IncomeCategory(
+      {required this.incomeCategoryName, this.subIncomeCategory = const []});
+}
+
 

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:notegoexpense/widgets/BottomBar.dart';
 
-class HomeScreen {
-  static Widget build(BuildContext context) {
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home'),
@@ -52,6 +56,28 @@ class HomeScreen {
           ],
         ),
       ),
+      bottomNavigationBar: BottomBar(
+        currentIndex: 0, // Transactions tab is selected
+        onTap: (index) {
+          _handleBottomNavigation(context, index);
+        },
+      ),
     );
+  }
+}
+
+void _handleBottomNavigation(BuildContext context, int index) {
+  String route;
+  if (index == 0)
+    route = '/home';
+  else if (index == 1)
+    route = '/ledger';
+  else if (index == 2)
+    route = '/accountManagement';
+  else
+    route = '/settings';
+
+  if (ModalRoute.of(context)?.settings.name != route) {
+    Navigator.pushNamed(context, route);
   }
 }
