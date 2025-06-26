@@ -16,23 +16,14 @@ class TransactionsNotifier extends AsyncNotifier<List<TransactionModel>> {
     return _box.values.toList();
   }
 
-  /// Adds a new transaction and updates state
+  // Adds a new transaction and updates state
   Future<void> addTransaction(TransactionModel transaction) async {
-    // Ensure box is initialized
-    // if (!_box.isOpen) {
-    //   _box = await Hive.openBox<TransactionModel>('transactions');
-    // }
-
     await _box.put(transaction.id, transaction);
     state = AsyncData([...state.value ?? [], transaction]);
   }
 
-  /// Edits a transaction
+  // Edits a transaction
   Future<void> editTransaction(TransactionModel updatedTx) async {
-    // if (!_box.isOpen) {
-    //   _box = await Hive.openBox<TransactionModel>('transactions');
-    // }
-
     final existing = _box.get(updatedTx.id);
     if (existing != null &&
         existing.title == 'Opening Balance' &&
@@ -51,10 +42,6 @@ class TransactionsNotifier extends AsyncNotifier<List<TransactionModel>> {
 
   /// Deletes a transaction
   Future<void> deleteTransaction(String id) async {
-    // if (!_box.isOpen) {
-    //   _box = await Hive.openBox<TransactionModel>('transactions');
-    // }
-
     final existing = _box.get(id);
     if (existing != null &&
         existing.title == 'Opening Balance' &&
