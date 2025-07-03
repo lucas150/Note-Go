@@ -17,9 +17,9 @@ class TransactionsNotifier extends AsyncNotifier<List<TransactionModel>> {
   }
 
   // Adds a new transaction and updates state
-  Future<void> addTransaction(TransactionModel transaction) async {
-    await _box.put(transaction.id, transaction);
-    state = AsyncData([...state.value ?? [], transaction]);
+  Future<void> addTransaction(TransactionModel tx) async {
+    await _box.put(tx.id, tx);
+    state = AsyncValue.data([...state.value ?? [], tx]);
   }
 
   // Edits a transaction

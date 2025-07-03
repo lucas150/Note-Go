@@ -16,11 +16,14 @@ import 'package:notegoexpense/pages/SettingPage/settings.dart';
 import 'package:notegoexpense/pages/welcome.dart';
 import 'package:notegoexpense/pages/SettingPage/IncomeCategoryPage.dart';
 import 'package:notegoexpense/widgets/BottomBar.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-
 // Register all Adapters
   Hive.registerAdapter(ExpenseCategoryAdapter());
   Hive.registerAdapter(IncomeCategoryAdapter());
@@ -28,6 +31,7 @@ void main() async {
   Hive.registerAdapter(TransactionModelAdapter());
   Hive.registerAdapter(AccountRoleAdapter());
   Hive.registerAdapter(AccountAdapter());
+  
 
 // Open all required boxes
   await Hive.openBox<ExpenseCategory>('expense_categories');
@@ -37,6 +41,8 @@ void main() async {
 // Preload default categories AFTER opening relevant boxes
   await preloadDefaultIncomeCategories();
   await preloadDefaultExpenseCategories();
+
+  await Permission.sms.request();
 
   runApp(
     ProviderScope(
@@ -52,7 +58,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Note & GoExpense',
+      scaffoldMessengerKey:
+          scaffoldMessengerKey, // <--- Assign the global key here
+
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
@@ -60,7 +69,11 @@ class MyApp extends StatelessWidget {
       home: const WelcomePage(),
       routes: {
         '/home': (context) => HomeScreen(),
-        '/addTransaction': (context) => const AddTransactionPage(),
+        '/addTransaction': (context) {
+          final tx =
+              ModalRoute.of(context)!.settings.arguments as TransactionModel?;
+          return AddTransactionPage(transaction: tx);
+        },
         '/ledger': (context) => const LedgerPage(),
         '/accountManagement': (context) => const AccountManagementPage(),
         '/hiveDebug': (context) => const HiveDebugPage(),
